@@ -354,7 +354,13 @@ if __name__ == '__main__':
                 self.sql.sql_query("exec master..xp_cmdshell '%s'--sp_password" % s.replace("'", "''"))
                 self.sql.printReplies()
                 self.sql.colMeta[0]['TypeData'] = 80*2
-                self.sql.printRows()
+                for row in self.sql.rows:
+                    for col in self.sql.colMeta:
+                        if row[col['Name']] == 'NULL':
+                            print('')
+                        else:
+                            print(row[col['Name']])
+                # self.sql.printRows()
             except:
                 pass
 
