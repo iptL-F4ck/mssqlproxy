@@ -58,8 +58,6 @@ def check_configuration(mssql, option, value):
 def file_exists(mssql, path):
     try:
         res = mssql.batch("DECLARE @r INT; EXEC master.dbo.xp_fileexist '%s', @r OUTPUT; SELECT @r as n" % path)[0]['n']
-        print('1111111111')
-        print(res)
         return res == 1
     except:
         return False
@@ -178,7 +176,7 @@ def proxy_worker(server, client):
                     server.sendall(MSG_END_OF_TRANSIMISSION)
                     return
 
-                logging.debug("Client: %s" % data.encode('hex'))
+                logging.debug("Client: %s" % data.hex())
                 server.sendall(data)
 
             elif sock is server:
@@ -187,7 +185,7 @@ def proxy_worker(server, client):
                     logging.info("Server disconnected!")
                     return
 
-                logging.debug("Server: %s" % data.encode('hex'))
+                logging.debug("Server: %s" % data.hex())
                 client.sendall(data)
 
 
@@ -229,7 +227,8 @@ def proxy_start(mssql, args):
         s.listen(10)
         while True:
             client, _ = s.accept()
-            threading.Thread(target=proxy_worker, args=(mssql.socket, client))
+            t = threading.Thread(target=proxy_worker, args=(mssql.socket, client))
+            t.start()
 
     except:
         mssql.socket.sendall(MSG_EXIT_CMD)
