@@ -1,6 +1,7 @@
 # mssqlproxy
  [![](https://img.shields.io/badge/Category-Lateral%20Movement-E5A505?style=flat-square)]() [![](https://img.shields.io/badge/Language-.NET%20%2f%20C%20%2f%20Python-E5A505?style=flat-square)]()
 
+forked from [blackarrowsec/mssqlproxy](https://github.com/blackarrowsec/mssqlproxy)
 
 
 **mssqlproxy** is a toolkit aimed to perform lateral movement in restricted environments through a compromised Microsoft SQL Server via socket reuse. The client requires [impacket](https://github.com/SecureAuthCorp/impacket) and **sysadmin** privileges on the SQL server.
